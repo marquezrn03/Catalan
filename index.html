@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sintaxi Maragda - Joc de Gramàtica</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Llibreries de React -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel (per transpilar JSX) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Animacions personalitzades per als efectes del joc */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-[#05110a] text-white">
+    <!-- Contenidor React -->
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- ICONES VECTORIALS ---
+        const Heart = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        );
+        const Zap = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        );
+        const Trophy = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        );
+        const Play = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="6 3 20 12 6 21 6 3"/></svg>
+        );
+        const RotateCcw = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        );
+        const AlertTriangle = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+        );
+        const Sparkles = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+        );
+        const Gem = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="6 3 18 3 22 9 12 22 2 9 6 3" /><line x1="12" y1="22" x2="12" y2="9" /><line x1="2" y1="9" x2="22" y2="9" /><line x1="6" y1="3" x2="12" y2="9" /><line x1="18" y1="3" x2="12" y2="9" /></svg>
+        );
+        const Info = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>
+        );
+        const XCircle = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+        );
+        const ArrowRight = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        );
+        const Lightbulb = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.2 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+        );
+
+        // --- DICCIONARI D'EXPLICACIONS GRAMATICALS (Nivell Avançat) ---
+        const explanationsDB = {
+            'Passat Perifràstic': "El passat perifràstic expressa una acció finalitzada en un període de temps ja acabat (ahir, l'any passat). Es forma amb el present del verb 'anar' + infinitiu. Recorda: 'vam' o 'vàrem' per a nosaltres, i 'vau' o 'vàreu' per a vosaltres.",
+            'Passat Simple': "El passat simple té el mateix valor que el perifràstic, però s'usa principalment en la llengua literària o en registres formals (i oralment al País Valencià i Eivissa). Els verbs velars fan terminacions com -guí (jo coneguí, ell caigué).",
+            'Perfet d\'Indicatiu': "El perfet d'indicatiu s'usa per a accions ocorregudes en un passat molt recent o en un període de temps que encara no s'ha acabat (avui, aquesta setmana, enguany). Es forma amb 'haver' + participi.",
+            'Plusquamperfet d\'Indicatiu': "Indica una acció passada que és anterior a una altra acció també passada. Es forma amb l'imperfet del verb 'haver' (havia, havies...) + participi passat.",
+            'Imperfet d\'Indicatiu': "S'usa per descriure accions habituals o en desenvolupament en el passat. Atenció als verbs de la 2a conjugació com caure, seure, creure, veure: fan queia, seia, crèiem, vèiem (sense la 'e' de l'infinitiu).",
+            'Imperfet de Subjuntiu': "S'usa principalment darrere de verbs en passat o condicional ('Volia que vinguessis'). Les terminacions clàssiques són -às, -és, -ís segons la conjugació. Els verbs velars o irregulars hi posen la consonant (caigués, conegués, veiés).",
+            'Plusquamperfet de Subjuntiu': "S'utilitza en les oracions condicionals irreals del passat (Ex: 'Si ho hagués sabut, no hauria vingut'). Es forma amb l'imperfet de subjuntiu d'haver (hagués, haguessis...) + participi.",
+            'Participis Irregulars': "Alguns verbs formen el participi de manera irregular i s'han de memoritzar. Exemples clàssics: imprimir -> imprès (o imprimit), resoldre -> resolt, absoldre -> absolt, cloure -> clos, admetre -> admès."
+        };
+
+        // --- CONSELLS AVANÇATS (Apareixen cada 5 intents) ---
+        const advancedTips = [
+            { title: "Verbs Velars al Passat", content: "Molts verbs de la segona conjugació (caure, conèixer, aparèixer) afegeixen una 'g' velar en els temps del passat. Ex: Imperfet subjuntiu de caure -> caigués (i no caiés)." },
+            { title: "Creure, seure, veure, treure", content: "En l'imperfet d'indicatiu, aquests verbs perden la 'e' radical i sonen com a diftongs. Així, de 'caure' és 'queia' (i no queia/caia), i de 'veure' és 'veia'." },
+            { title: "El Passat Simple de la 1a Conj.", content: "Els verbs acabats en -ar fan la primera persona en '-í' (jo cantí) i la tercera en '-à' (ell cantà). No ho confonguis amb altres temps!" },
+            { title: "Diferència Perfet vs Perifràstic", content: "Regla d'or: Si l'acció ha passat 'avui' (el dia encara no s'ha acabat), fem servir el Perfet ('He esmorzat'). Si va ser 'ahir' (ja s'ha tancat el període), fem servir Perifràstic ('Vaig esmorzar')." },
+            { title: "L'Accent Diacrític als Passats", content: "Compte amb 'fórem' / 'fóreu' (del verb ser) o 'déssim' (del verb donar), que antigament portaven accents per diferenciar-se. Després de la reforma de l'IEC (2016), molts s'han simplificat, però en l'oralitat mantenen l'entonació." },
+            { title: "Vam vs Vàrem", content: "Tant 'vam' com 'vàrem' (i 'vau' / 'vàreu') són formes absolutament correctes per al passat perifràstic. Les formes amb 'r' s'acostumen a considerar un pèl més formals." },
+            { title: "Participis en -ès i -ès", content: "Verbs com admetre o imprimir fan el participi acabat en consonant més accent greu: admès, comprès, imprès. (Tot i que 'imprimit' també s'accepta formalment, 'imprès' és molt habitual)." },
+            { title: "Escriure i els seus derivats", content: "El participi del verb escriure és 'escrit' (mai escrivut). Igual passa amb descriure -> descrit, inscriure -> inscrit." }
+        ];
+
+        // --- BASE DE DADES DE PREGUNTES (Gramàtica C1/C2) ---
+        // prompt: La frase amb el buit.
+        // answer: La resposta totalment correcta.
+        // distractors: 3 respostes plausibles però incorrectes ortogràficament o gramaticalment.
+        const grammarDB = [
+            // PASSAT PERIFRÀSTIC (30 preguntes)
+            { prompt: "L'any passat, nosaltres ___ (conèixer) l'alcalde del poble.", answer: "vam conèixer", distractors: ["vau conèixer", "vam coneix", "varen conèixer"], type: "Passat Perifràstic" },
+            { prompt: "Ahir tu ___ (veure) un ós al Pirineu?", answer: "vas veure", distractors: ["vau veure", "vas veig", "veies"], type: "Passat Perifràstic" },
+            { prompt: "Vosaltres no ___ (dir) tota la veritat a la reunió de dilluns.", answer: "vau dir", distractors: ["vareu dir", "vau direu", "vàreu dieu"], type: "Passat Perifràstic" },
+            { prompt: "La setmana passada els estudiants ___ (resoldre) l'equació.", answer: "van resoldre", distractors: ["vam resoldre", "van resolgut", "varen resolts"], type: "Passat Perifràstic" },
+            { prompt: "Jo no m'ho ___ (creure) fins que m'ho van ensenyar en vídeo.", answer: "vaig creure", distractors: ["vam creure", "vaig creig", "vas creure"], type: "Passat Perifràstic" },
+            { prompt: "Elles ___ (saber) la notícia abans que ningú altre.", answer: "van saber", distractors: ["vam saber", "van sapiguer", "va saber"], type: "Passat Perifràstic" },
+            { prompt: "Ahir nosaltres no hi ___ (caber) al cotxe familiar.", answer: "vam cabre", distractors: ["vam caber", "vau cabre", "varem capiguer"], type: "Passat Perifràstic" },
+            { prompt: "Vosaltres ___ (néixer) a la dècada dels noranta, oi?", answer: "vau néixer", distractors: ["vam néixer", "vau naix", "vareu neixer"], type: "Passat Perifràstic" },
+            { prompt: "El mes passat jo ___ (caure) per les escales del metro.", answer: "vaig caure", distractors: ["vaig caig", "vas caure", "van caure"], type: "Passat Perifràstic" },
+            { prompt: "Tu ___ (treure) molt bones notes al batxillerat.", answer: "vas treure", distractors: ["vau treure", "vas traure", "vas tregut"], type: "Passat Perifràstic" },
+            { prompt: "Ell no ___ (beure) gota d'alcohol en tot el sopar.", answer: "va beure", distractors: ["van beure", "va beguer", "vas beure"], type: "Passat Perifràstic" },
+            { prompt: "Nosaltres ___ (seure) a la darrera fila de l'auditori.", answer: "vam seure", distractors: ["vau seure", "vam asseure", "van seure"], type: "Passat Perifràstic" },
+            { prompt: "L'artista ___ (aparèixer) sobtadament dalt de l'escenari.", answer: "va aparèixer", distractors: ["van aparèixer", "va apareix", "vas aparèixer"], type: "Passat Perifràstic" },
+            { prompt: "Vosaltres ___ (prometre) que vindríeu aviat.", answer: "vau prometre", distractors: ["vam prometre", "vareu promès", "vau promès"], type: "Passat Perifràstic" },
+            { prompt: "Jo no ___ (entendre) res del que explicava el professor ahir.", answer: "vaig entendre", distractors: ["vas entendre", "vaig enten", "van entendre"], type: "Passat Perifràstic" },
+            { prompt: "Tu t'hi ___ (esforçar) molt, l'any passat, amb el projecte.", answer: "vas esforçar", distractors: ["vaig esforçar", "t'esforçaves", "vau esforçar"], type: "Passat Perifràstic" },
+            { prompt: "Ells ___ (fugir) tan ràpid com van poder de l'edifici en flames.", answer: "van fugir", distractors: ["vam fugir", "van fuig", "varen fugint"], type: "Passat Perifràstic" },
+            { prompt: "Nosaltres ens ___ (perdre) al mig del bosc a la nit.", answer: "vam perdre", distractors: ["ens vau perdre", "ens van perdre", "vam perdut"], type: "Passat Perifràstic" },
+            { prompt: "Vosaltres no ___ (viure) aquella època daurada.", answer: "vau viure", distractors: ["vam viure", "vareu viviu", "vau viscut"], type: "Passat Perifràstic" },
+            { prompt: "Jo ___ (riure) a llàgrima viva amb aquella comèdia.", answer: "vaig riure", distractors: ["vas riure", "vaig rigut", "van riure"], type: "Passat Perifràstic" },
+            { prompt: "El teu germà em ___ (vendre) el seu cotxe antic de segona mà.", answer: "va vendre", distractors: ["van vendre", "va ven", "vas vendre"], type: "Passat Perifràstic" },
+            { prompt: "Nosaltres ___ (vèncer) les nostres pròpies pors a l'aventura.", answer: "vam vèncer", distractors: ["vau vèncer", "vam vençut", "van vèncer"], type: "Passat Perifràstic" },
+            { prompt: "Vosaltres ho ___ (incloure) tot a la maleta de viatge?", answer: "vau incloure", distractors: ["vam incloure", "vau inclòs", "vareu incloure"], type: "Passat Perifràstic" },
+            { prompt: "Tu ___ (omplir) el formulari fora de termini, per això et van rebutjar.", answer: "vas omplir", distractors: ["vaig omplir", "vas omplert", "vau omplir"], type: "Passat Perifràstic" },
+            { prompt: "Ahir ells no m' ___ (oferir) cap ajuda amb les caixes.", answer: "van oferir", distractors: ["vam oferir", "van ofert", "va oferir"], type: "Passat Perifràstic" },
+            { prompt: "Jo ___ (sofrir) molt d'estrès en l'antiga feina.", answer: "vaig sofrir", distractors: ["vas sofrir", "vaig sofert", "van sofrir"], type: "Passat Perifràstic" },
+            { prompt: "Nosaltres ___ (poder) arribar a un bon acord de negociació.", answer: "vam poder", distractors: ["vau poder", "vam pogut", "van poder"], type: "Passat Perifràstic" },
+            { prompt: "Vosaltres ho ___ (voler) fer a la vostra manera des del principi.", answer: "vau voler", distractors: ["vam voler", "vau volgut", "vareu voler"], type: "Passat Perifràstic" },
+            { prompt: "L'any 1992, la ciutat ___ (acollir) els Jocs Olímpics.", answer: "va acollir", distractors: ["van acollir", "va acollit", "vas acollir"], type: "Passat Perifràstic" },
+            { prompt: "Jo li ___ (escriure) una nota d'agraïment molt emotiva ahir.", answer: "vaig escriure", distractors: ["vas escriure", "vaig escrit", "vam escriure"], type: "Passat Perifràstic" },
+
+            // PASSAT SIMPLE (35 preguntes)
+            { prompt: "L'any 1714 la ciutat de Barcelona ___ (caure).", answer: "caigué", distractors: ["caiguí", "caié", "caiguda"], type: "Passat Simple" },
+            { prompt: "Jo, en aquell instant decisiu, ___ (saber) què havia de fer.", answer: "sabí", distractors: ["sabíem", "saberé", "sapiguí"], type: "Passat Simple" },
+            { prompt: "Ells ___ (beure) fins no poder més al banquet.", answer: "begueren", distractors: ["beveren", "beguí", "begueu"], type: "Passat Simple" },
+            { prompt: "Tu, sense pensar-ho gaire, ho ___ (donar) tot pel projecte.", answer: "donares", distractors: ["doní", "doneres", "dongueres"], type: "Passat Simple" },
+            { prompt: "Nosaltres ___ (ser) els primers a arribar al cim de la muntanya.", answer: "fórem", distractors: ["fúrem", "ferem", "fuiem"], type: "Passat Simple" },
+            { prompt: "Ramon Llull ___ (néixer) a l'illa de Mallorca al segle XIII.", answer: "nasqué", distractors: ["naixé", "nasquí", "naixqué"], type: "Passat Simple" },
+            { prompt: "Aquella nit, vosaltres ___ (sentir) un soroll esgarrifós al pis de dalt.", answer: "sentíreu", distractors: ["sentírem", "sentí", "sentireu"], type: "Passat Simple" },
+            { prompt: "En obrir la porta, jo m' ___ (adormir) de cansament a la cadira.", answer: "adormí", distractors: ["adormírem", "adormirà", "adormiguí"], type: "Passat Simple" },
+            { prompt: "Tu li ___ (dir) que mai més no el voldries veure.", answer: "digueres", distractors: ["dieres", "digueu", "digueren"], type: "Passat Simple" },
+            { prompt: "L'emperador ___ (viure) molts anys després d'aquella guerra cruel.", answer: "visqué", distractors: ["viví", "visquí", "viugué"], type: "Passat Simple" },
+            { prompt: "Nosaltres no ___ (entendre) absolutament res del seu discurs.", answer: "entenguérem", distractors: ["entenérem", "entenguéreu", "entengué"], type: "Passat Simple" },
+            { prompt: "Vosaltres ___ (conèixer) l'amor veritable aquell calorós estiu.", answer: "coneguéreu", distractors: ["coneixéreu", "coneguérem", "conegué"], type: "Passat Simple" },
+            { prompt: "Aleshores ells se'n ___ (anar) sense acomiadar-se de ningú.", answer: "anaren", distractors: ["anéssin", "anàren", "aneu"], type: "Passat Simple" },
+            { prompt: "Jo no ___ (voler) interferir en una decisió tan personal.", answer: "volguí", distractors: ["volí", "volgué", "volguéreu"], type: "Passat Simple" },
+            { prompt: "Tu ___ (poder) aturar la tragèdia a l'últim moment providencial.", answer: "pogueres", distractors: ["podí", "poguí", "poderes"], type: "Passat Simple" },
+            { prompt: "L'equip visitant ___ (vèncer) contra tot pronòstic a l'estadi.", answer: "vençé", distractors: ["vencé", "vençí", "vençeren"], type: "Passat Simple" },
+            { prompt: "Nosaltres els ___ (oferir) refugi a la nostra humil cabanya.", answer: "oferírem", distractors: ["oferíreu", "oferim", "ofrírem"], type: "Passat Simple" },
+            { prompt: "Vosaltres ___ (tancar) la porta de cop, espaordits pel tro.", answer: "tancàreu", distractors: ["tanquàreu", "tancáreu", "tanquéreu"], type: "Passat Simple" },
+            { prompt: "Elles ___ (obrir) els regals amb una gran il·lusió compartida.", answer: "obriren", distractors: ["obriguen", "obríren", "obrigues"], type: "Passat Simple" },
+            { prompt: "Jo ___ (aparèixer) al bell mig de la plaça desconcertat.", answer: "apareguí", distractors: ["apareixí", "aparegué", "apareguéreu"], type: "Passat Simple" },
+            { prompt: "Tu ___ (seure) a la primera fila per no perdre't detall de l'obra.", answer: "segueres", distractors: ["seieres", "seures", "siguéres"], type: "Passat Simple" },
+            { prompt: "El cel ___ (enfosquir)-se ràpidament abans del temporal de neu.", answer: "s'enfosquí", distractors: ["s'enfosqué", "s'enfosquigué", "s'enfoscà"], type: "Passat Simple" },
+            { prompt: "Nosaltres ___ (traduir) el text clàssic del llatí durant la nit.", answer: "traduírem", distractors: ["traduíreu", "tradueixírem", "traduiguérem"], type: "Passat Simple" },
+            { prompt: "Vosaltres ___ (conduir) fins a l'alba per arribar al concert a temps.", answer: "conduíreu", distractors: ["conduírem", "condueixíreu", "conduïreu"], type: "Passat Simple" },
+            { prompt: "Aquells reis cruels ___ (oprimir) el poble durant segles de fam.", answer: "oprimiren", distractors: ["oprimeixen", "oprimiguen", "oprimes"], type: "Passat Simple" },
+            { prompt: "Jo m' ___ (encongir) de fred en sentir el vent gèlid.", answer: "encongí", distractors: ["encongeixí", "encongiguí", "encongué"], type: "Passat Simple" },
+            { prompt: "Tu ___ (sofrir) en silenci tot el càstig immerescut.", answer: "sofrires", distractors: ["sofrí", "sofregueres", "sufríres"], type: "Passat Simple" },
+            { prompt: "L'esquadró ___ (intervenir) abans que la situació empitjorés perillosament.", answer: "intervingué", distractors: ["intervení", "intervinguí", "intervingueren"], type: "Passat Simple" },
+            { prompt: "Nosaltres ho ___ (comprendre) tot molt més tard, massa tard.", answer: "comprenguérem", distractors: ["comprenérem", "comprengué", "comprenguéreu"], type: "Passat Simple" },
+            { prompt: "Vosaltres l' ___ (atendre) meravellosament durant la seva estada.", answer: "atenguéreu", distractors: ["atenéreu", "atenguérem", "atengués"], type: "Passat Simple" },
+            { prompt: "Ells ___ (fondre) tot el metall per construir-ne una gran campana.", answer: "fongueren", distractors: ["foneren", "fongué", "foniguen"], type: "Passat Simple" },
+            { prompt: "Jo no el ___ (reconèixer) després de tants anys a l'estranger.", answer: "reconeguí", distractors: ["reconeixí", "reconegué", "reconeixé"], type: "Passat Simple" },
+            { prompt: "Tu li ___ (vendre) el terreny per una autèntica misèria al mercat.", answer: "vengueres", distractors: ["veneres", "venguí", "venguéreu"], type: "Passat Simple" },
+            { prompt: "L'arbre ___ (florir) enmig d'un hivern excepcionalment càlid.", answer: "florí", distractors: ["floreixí", "florigué", "florirà"], type: "Passat Simple" },
+            { prompt: "A mi em ___ (complaure) enormement la teva generosa donació.", answer: "complagué", distractors: ["complaurà", "complaigué", "complauí"], type: "Passat Simple" },
+
+            // IMPERFET D'INDICATIU (30 preguntes)
+            { prompt: "Abans, quan jo ___ (fer) els deures, escoltava música de fons.", answer: "feia", distractors: ["feya", "faia", "faria"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Aquella casa abandonada ___ (caure) a trossos des de feia anys.", answer: "queia", distractors: ["caia", "cauria", "caiguia"], type: "Imperfet d'Indicatiu" },
+            { prompt: "En aquella època, ells sempre ___ (dir) la veritat sense embuts.", answer: "deien", distractors: ["dèien", "diien", "dia"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Mentre tu ___ (riure), ell no parava de plorar de tristesa amagada.", answer: "reies", distractors: ["riies", "rieies", "riures"], type: "Imperfet d'Indicatiu" },
+            { prompt: "A l'escola, nosaltres ___ (creure) que tot aniria bé en el futur.", answer: "crèiem", distractors: ["creiem", "creïem", "creyem"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Antigament ells ___ (seure) a la vora del foc durant tot l'hivern.", answer: "seien", distractors: ["sèien", "sentaven", "seïen"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Quan n'era l'encarregat, jo ho ___ (veure) tot des del despatx cantoner.", answer: "veia", distractors: ["veïa", "vèia", "via"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Mentre treballava al camp, tu sempre ___ (treure) aigua fresca del pou.", answer: "treies", distractors: ["traies", "trèies", "treiès"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Als matins d'estiu, nosaltres ens ___ (jeure) a l'ombra de la figuera.", answer: "jèiem", distractors: ["jeiem", "jaïem", "jaurem"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Vosaltres no ___ (plaure) a ningú amb aquella actitud arrogant.", answer: "plaíeu", distractors: ["plavíeu", "plaïeu", "plaieu"], type: "Imperfet d'Indicatiu" },
+            { prompt: "De petit, jo sempre m' ___ (abstraure) al meu propi món imaginari.", answer: "abstraia", distractors: ["abstreia", "abstrèia", "abstraguia"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Aquella ferida li ___ (coure) cada vegada que hi tirava aigua i sal.", answer: "coïa", distractors: ["coia", "còia", "cueia"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Durant la cerimònia, tu ___ (lluir) un vestit d'època esplèndid.", answer: "lluïes", distractors: ["lluies", "llueixies", "lluíres"], type: "Imperfet d'Indicatiu" },
+            { prompt: "En aquella empresa, nosaltres ___ (traduir) documents legals internacionals.", answer: "traduíem", distractors: ["tradueixíem", "traduïem", "traduíem"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Vosaltres ___ (conduir) el vell tractor per les carreteres secundàries empedrades.", answer: "conduíeu", distractors: ["conduïeu", "condueixíeu", "conduïen"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Els antics monarques ___ (construir) grans castells als cims inexpugnables.", answer: "construïen", distractors: ["construien", "construeixien", "constrüïen"], type: "Imperfet d'Indicatiu" },
+            { prompt: "De petita, jo sempre m' ___ (entendre) bé amb els meus cosins llunyans.", answer: "entenia", distractors: ["entenïa", "entenguia", "entenià"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Tu ___ (poder) fer allò que vulguessis perquè eres el responsable.", answer: "podies", distractors: ["podïes", "pogues", "poguies"], type: "Imperfet d'Indicatiu" },
+            { prompt: "A l'hivern, el riu sempre ___ (créixer) molt a causa de les intenses pluges.", answer: "creixia", distractors: ["crexia", "crescava", "creixïa"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Nosaltres no ___ (merèixer) un càstig tan sever i desproporcionat.", answer: "mereixíem", distractors: ["meresquíem", "mereixiem", "merexíem"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Vosaltres ___ (voler) arribar al poder a qualsevol preu i sacrifici.", answer: "volíeu", distractors: ["volïeu", "volguíeu", "volieu"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Ells s' ___ (asseure) al final de la classe per no haver de participar.", answer: "asseien", distractors: ["assentaven", "assèien", "asseïen"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Mentre vivíem a prop de mar, jo sempre ___ (tossir) a l'hivern.", answer: "tossia", distractors: ["tussia", "tosseixia", "tossïa"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Cada dia tu m' ___ (agrair) aquell petit gest solidari amb un somriure.", answer: "agraïes", distractors: ["agraies", "agraeixies", "agravies"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Nosaltres ___ (patir) molt per ell quan vivia a l'estranger sense res.", answer: "patíem", distractors: ["pateixíem", "patïem", "pascavem"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Vosaltres ___ (llegir) tots els llibres de la biblioteca del barri ràpidament.", answer: "llegíeu", distractors: ["llegïeu", "llegeixíeu", "lleigieu"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Les meves àvies ___ (cosir) la roba a mà amb una gran precisió i paciència.", answer: "cosien", distractors: ["cussien", "coseixien", "cosïen"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Quan era aprenent, jo no ___ (saber) com fer funcionar aquesta màquina vella.", answer: "sabia", distractors: ["sapiguia", "sabïa", "sabava"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Tu, que ets tan alt, no hi ___ (cabre) en aquell llit d'hospital.", answer: "cabies", distractors: ["capiguies", "capies", "cabïes"], type: "Imperfet d'Indicatiu" },
+            { prompt: "Ells ___ (satisfer) tots els clients amb un producte d'alta qualitat tècnica.", answer: "satisfeien", distractors: ["satisfacien", "satisfèien", "satisfaien"], type: "Imperfet d'Indicatiu" },
+
+            // IMPERFET DE SUBJUNTIU (45 preguntes)
+            { prompt: "T'havia demanat que ___ (venir, tu) aviat a la reunió important.", answer: "vinguessis", distractors: ["vinguessies", "venguessis", "veiessis"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Si ell ___ (caure), es faria molt de mal a la cama ferida.", answer: "caigués", distractors: ["caiguès", "caiés", "caigui"], type: "Imperfet de Subjuntiu" },
+            { prompt: "No volia pas que vosaltres ho ___ (saber) abans d'hora per sorpresa.", answer: "sabéssiu", distractors: ["sapiguéssiu", "sabéssim", "sabeu"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Tant de bo ell ___ (aparèixer) per sorpresa a la festa familiar sorpresa.", answer: "aparegués", distractors: ["apareixés", "apareixès", "apareixigui"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Si ens ___ (veure, ells) el teu pare aquí ara, ens renyaria de valent.", answer: "veiessin", distractors: ["vegessin", "veiguessin", "veguessin"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Si la capsa hi ___ (cabre), l'hauria comprat sense dubtar-ho ni un instant.", answer: "cabés", distractors: ["capigués", "capigès", "cabiés"], type: "Imperfet de Subjuntiu" },
+            { prompt: "M'agradaria que nosaltres ___ (poder) viatjar en el temps fins al passat.", answer: "poguéssim", distractors: ["poguesim", "podéssim", "pugéssim"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Si jo ___ (cantar) una mica millor, m'apuntaria al cor de l'església local.", answer: "cantés", distractors: ["cantès", "cantes", "canteig"], type: "Imperfet de Subjuntiu" },
+            { prompt: "El professor volia que tu ___ (pensar) una miqueta més la resposta final.", answer: "pensessis", distractors: ["pensessies", "pensesis", "penséssis"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Ens demanaven que la porta ___ (tancar) bé abans de marxar del tot.", answer: "tanqués", distractors: ["tancàs", "tancès", "tanquès"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Desitjaven que nosaltres ___ (començar) el projecte com més aviat millor sempre.", answer: "comencéssim", distractors: ["començéssim", "comencessim", "comenceig"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Era necessari que vosaltres ___ (abraçar) l'avi amb molta tendresa abans de res.", answer: "abracéssiu", distractors: ["abraçéssiu", "abracessiu", "abraçeu"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Caldria que ells ___ (jugar) més en equip per aconseguir la gran victòria.", answer: "juguessin", distractors: ["jugesin", "juguesin", "juguessín"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Si jo no ___ (témer) la foscor del soterrani, hi baixaria ara mateix a buscar-ho.", answer: "temés", distractors: ["temès", "temés", "tengués"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Si tu no ho ___ (perdre) tot contínuament, t'hauríem deixat les claus noves.", answer: "perdessis", distractors: ["perguésis", "perdessies", "perdèssis"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Volíem que la tempesta no ens ___ (sorprendre) al mig del camí desprotegit.", answer: "sorprengués", distractors: ["sorprenés", "sorprengès", "sorprenyés"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Jo només volia que nosaltres ens ___ (entendre) sense arribar mai a crits.", answer: "entenguéssim", distractors: ["entenéssim", "entenguèssim", "entenguessim"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Necessitava que vosaltres m' ___ (atendre) cinc minuts per aquesta urgència mèdica.", answer: "atenguéssiu", distractors: ["atenéssiu", "atenguessiu", "atenguèssiu"], type: "Imperfet de Subjuntiu" },
+            { prompt: "No suportava que ells ho ___ (fondre) tot tan de pressa al forn cremador.", answer: "fonguessin", distractors: ["fonessin", "fonguesin", "fonguessín"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Tant de bo jo ho ___ (comprendre) a la primera, com fas tu sempre.", answer: "comprengués", distractors: ["comprenés", "comprenguès", "comprenès"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Si tu m'ho ___ (concedir), t'estaria agraït tota la meva vida sencera.", answer: "concedissis", distractors: ["concedíssis", "concedeixessis", "concedissies"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Va ordenar que ell ___ (dormir) a la mateixa habitació de l'hotel que nosaltres.", answer: "dormís", distractors: ["dormis", "dormès", "dormeixés"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Estava previst que nosaltres ___ (sortir) per la porta del darrere d'emergència.", answer: "sortíssim", distractors: ["sortissim", "sortessim", "surteixissim"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Exigia que vosaltres ___ (llegir) el llibre abans de la tertúlia setmanal de dijous.", answer: "llegíssiu", distractors: ["llegeixissiu", "llegissiu", "lleguíssiu"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Els policies van intentar que els lladres no ___ (fugir) amb el cotxe robat blanc.", answer: "fugissin", distractors: ["fugeixin", "fuigessin", "fugeixissin"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Va pregar a Déu que jo ___ (sofrir) el mínim possible al quiròfan petit.", answer: "sofrís", distractors: ["sufrís", "sofreixés", "sofreixís"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Si tu no m' ___ (escriure) aquelles cartes maques, jo hauria caigut en depressió.", answer: "escrivissis", distractors: ["escriguessis", "escriuguéssis", "escrivissies"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Ens agradaria que ell ___ (construir) una pèrgola de fusta sòlida al jardí.", answer: "construís", distractors: ["construeixés", "construis", "construigés"], type: "Imperfet de Subjuntiu" },
+            { prompt: "I si nosaltres el ___ (conduir) fins a la frontera amb França d'amagat?", answer: "conduíssim", distractors: ["conduissim", "condueixissim", "conduïssim"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Ens feia por que vosaltres ens ___ (traduir) el poema malament a l'anglès.", answer: "traduíssiu", distractors: ["tradueixissiu", "traduissiu", "traduïssiu"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Els demanaven que ___ (cosir) les velles ferides amb molt de compte sempre.", answer: "cosissin", distractors: ["cussessin", "cosessin", "cosissín"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Jo volia que ___ (haver-hi) prou menjar calent per a tothom a la taula.", answer: "hi hagués", distractors: ["hi haguès", "hi hagué", "haveries"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Si tu ho ___ (voler) de veritat, ja ho tindries a les teves mans ara mateix.", answer: "volguessis", distractors: ["volguèssis", "volguésis", "vulguessis"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Faria falta que el nen ___ (néixer) en una família estructurada ben aviat.", answer: "nasqués", distractors: ["neixés", "nasquès", "neixès"], type: "Imperfet de Subjuntiu" },
+            { prompt: "M'agradaria que nosaltres ___ (conèixer) la veritat de tot l'assumpte opac.", answer: "coneguéssim", distractors: ["coneixéssim", "coneguèssim", "coneguessim"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Dubtava moltíssim que vosaltres ___ (reconèixer) el vostre fatal error a temps.", answer: "reconeguéssiu", distractors: ["reconeixéssiu", "reconeguessiu", "reconeguèssiu"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Tant de bo ells ___ (beure) menys vi calent en aquestes inoblidables festes d'estiu.", answer: "beguessin", distractors: ["bevessin", "beguesin", "beguéssin"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Si jo no m' ___ (asseure) bé a la cadira, ara em faria mal tota l'esquena.", answer: "assegués", distractors: ["asseiés", "asseguessis", "asseguès"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Això passaria tret que tu ens ___ (treure) les castanyes del foc com fas sempre.", answer: "traguessis", distractors: ["traiessis", "traguéssis", "traguessies"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Què faria el director d'escola en cas que ella hi ___ (cabre)?", answer: "cabés", distractors: ["capigués", "capigès", "cabiés"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Volia que ens ho ___ (viure) amb intensitat emocional de principi a final feliç.", answer: "visquéssim", distractors: ["vivesim", "visquessim", "visquéssin"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Tant de bo vosaltres ___ (riure) molt més sovint a la feina monòtona.", answer: "riguéssiu", distractors: ["riguessiu", "rieiesiu", "riguèssiu"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Tenia la secreta esperança que ells m' ___ (somriure) en creuar aquella mirada fugaç.", answer: "somriguessin", distractors: ["somrieiesin", "somriguésin", "somriéssin"], type: "Imperfet de Subjuntiu" },
+            { prompt: "Preferiria que tu no l' ___ (ofendre) amb els teus grollers comentaris matinals.", answer: "ofenguessis", distractors: ["ofenesis", "ofenèssis", "ofenesis"], type: "Imperfet de Subjuntiu" },
+            { prompt: "L'alcalde exigia que el pont es ___ (fer) en menys d'un mes escàs de temps.", answer: "fes", distractors: ["fès", "fessis", "fagi"], type: "Imperfet de Subjuntiu" },
+
+            // PLUSQUAMPERFET DE SUBJUNTIU (25 preguntes)
+            { prompt: "Si m'ho ___ (dir, tu) abans, t'hauria ajudat de bon grat amb la construcció.", answer: "haguessis dit", distractors: ["haguessies dit", "hagues dit", "hauries dit"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Tant de bo nosaltres hi ___ (anar) quan ens van convidar amablement per correu.", answer: "haguéssim anat", distractors: ["haguessim anat", "hauríem anat", "haguéssiu anat"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Si ells no s' ___ (adormir), haurien agafat el tren exprés cap a l'aeroport fosc.", answer: "haguessin adormit", distractors: ["haguessin adormit", "haguessin dormit", "haguéssin adormit"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Si jo ___ (veure) aquell clot a la calçada, l'hauria esquivat perfectament.", answer: "hagués vist", distractors: ["hauria vist", "hagues vist", "haguès vist"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "T'haurien fet l'entrevista personal si tu ___ (arribar) a l'hora pactada amb recursos.", answer: "haguessis arribat", distractors: ["hauries arribat", "haguéssis arribat", "haguessis arribades"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Què hauria passat si la torre ___ (caure) en ple dia de festa major al centre?", answer: "hagués caigut", distractors: ["hauria caigut", "haguès caigut", "hagués caiguda"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Jo no em trobaria malament si ahir nosaltres no ___ (menjar) tantes llaminadures colorides.", answer: "haguéssim menjat", distractors: ["hauriem menjat", "haguessim menjat", "haguéssim menjats"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Si vosaltres ens ho ___ (fer) saber per carta, hauríem pres mesures immediates dràstiques.", answer: "haguéssiu fet", distractors: ["haguessiu fet", "hauríeu fet", "haguéssiu feta"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Ningú s'hauria assabentat de l'incident si ells ho ___ (amagar) al calaix verd.", answer: "haguessin amagat", distractors: ["haurien amagat", "haguessin amagats", "haguéssin amagat"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Si jo no t' ___ (conèixer) en aquella llibreria petita, no m'hauria casat amb tu.", answer: "hagués conegut", distractors: ["hauria conegut", "haguès conegut", "hagués coneguda"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "No estaríem atrapats en aquest refugi fred si tu ___ (portar) un bon mapa actualitzat.", answer: "haguessis portat", distractors: ["hauries portat", "haguessis portada", "haguéssis portat"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Hauria funcionat bé si la màquina ___ (ser) revisada fa només tres mesos seguits.", answer: "hagués estat", distractors: ["hauria estat", "fos", "haguès sigut"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Si nosaltres ens ___ (esforçar) de valent al gimnàs fosc, seríem professionals", answer: "haguéssim esforçat", distractors: ["hauríem esforçat", "haguessim esforçat", "haguéssim esforçats"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Això no us hauria passat mai si vosaltres hi ___ (posar) un cadenat tancat i fort.", answer: "haguéssiu posat", distractors: ["haguessiu posat", "hauríeu posat", "haguéssiu posats"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "La situació seria diferent si ells no ens ___ (treure) tota l'autoritat oficial i civil.", answer: "haguessin tret", distractors: ["haurien tret", "haguessin trets", "haguéssin tret"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Si jo ho ___ (voler) de veritat amb l'ànima, hauria lluitat molt més cada matí assolellat.", answer: "hagués volgut", distractors: ["hauria volgut", "haguès volgut", "hagués valgudes"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Si tu no t' ___ (creure) aquella immensa mentida tan absurda, no ploraries ara.", answer: "haguessis cregut", distractors: ["hauries cregut", "haguéssis cregut", "haguessis creguts"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Tot hauria anat rodó si la directora m' ___ (concedir) la meva lícita petició d'ajut.", answer: "hagués concedit", distractors: ["hauria concedit", "haguès concedit", "hagués concedida"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "No us renyaríem en absolut si nosaltres ___ (saber) tota la veritat ahir a la tarda calenta.", answer: "haguéssim sabut", distractors: ["hauríem sabut", "haguessim sabut", "haguéssim sapigut"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Seríeu feliços de la vida si vosaltres ___ (vèncer) el fatídic partit de dissabte vell.", answer: "haguéssiu vençut", distractors: ["hauríeu vençut", "haguessiu vençut", "haguéssiu vençuts"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Els edificis estarien intactes si ells no els ___ (fondre) completament al forn industrial gran.", answer: "haguessin fos", distractors: ["haurien fos", "haguessin fosos", "haguéssin fos"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Si jo ho ___ (escriure) amb majúscules vermelles, es veuria millor el detall de colors.", answer: "hagués escrit", distractors: ["hauria escrit", "haguès escrit", "hagués escrivut"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Si tu m'ho ___ (donar) ahir a la nit fosca, avui ho podria ensenyar orgullós i feliç.", answer: "haguessis donat", distractors: ["hauries donat", "haguéssis donat", "haguessis donada"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "L'espectacle no seria el mateix si la pluja no ___ (aparèixer) al bell mig del clímax tens.", answer: "hagués aparegut", distractors: ["hauria aparegut", "haguès aparegut", "hagués aparescut"], type: "Plusquamperfet de Subjuntiu" },
+            { prompt: "Si nosaltres ens ho ___ (prendre) més seriosament d'entrada feliç, tindríem resultats ara mateix.", answer: "haguéssim pres", distractors: ["hauríem pres", "haguessim pres", "haguéssim presos"], type: "Plusquamperfet de Subjuntiu" },
+
+            // PERFET D'INDICATIU (15 preguntes)
+            { prompt: "Aquest matí jo ___ (esmorzar) molt d'hora, abans de la sortida plàcida del sol matinal.", answer: "he esmorzat", distractors: ["vaig esmorzar", "he esmorzà", "has esmorzat"], type: "Perfet d'Indicatiu" },
+            { prompt: "Avui els treballadors no ___ (poder) acabar la gran reforma a l'hora pactada prèviament.", answer: "han pogut", distractors: ["van poder", "han pogut", "ha pogut"], type: "Perfet d'Indicatiu" },
+            { prompt: "Aquesta setmana nosaltres no ___ (tenir) temps de revisar absolutament cap compte clau.", answer: "hem tingut", distractors: ["vam tenir", "em tingut", "hem tengut"], type: "Perfet d'Indicatiu" },
+            { prompt: "Enguany tu ___ (viatjar) a més de cinc països diferents d'Europa meridional i occidental.", answer: "has viatjat", distractors: ["vas viatjar", "ha viatjat", "haveu viatjat"], type: "Perfet d'Indicatiu" },
+            { prompt: "Aquest mes el govern ___ (aprovar) un nou pressupost de contingència especial molt dens.", answer: "ha aprovat", distractors: ["va aprovar", "has aprovat", "he aprovat"], type: "Perfet d'Indicatiu" },
+            { prompt: "Aquest cap de setmana vosaltres ___ (gaudir) molt de la platja tranquil·la i solitària del nord.", answer: "heu gaudit", distractors: ["vau gaudir", "haveu gaudit", "heu gaudits"], type: "Perfet d'Indicatiu" },
+            { prompt: "Avui els ocells de la comarca ___ (cantar) sense parar des de la fina sortida del sol net.", answer: "han cantat", distractors: ["van cantar", "ha cantat", "hem cantat"], type: "Perfet d'Indicatiu" },
+            { prompt: "Aquest any jo no m' ___ (estudiar) tota la lliçó de ciències pures, només una part breu.", answer: "he estudiat", distractors: ["vaig estudiar", "m'ha estudiat", "m'he estudiada"], type: "Perfet d'Indicatiu" },
+            { prompt: "Tu, que ets tan llest, avui no hi ___ (pensar) en absolut durant tota la matinal plujosa.", answer: "has pensat", distractors: ["vas pensar", "he pensat", "ha pensat"], type: "Perfet d'Indicatiu" },
+            { prompt: "Aquesta tarda l'àvia ___ (cuinar) una escudella i carn d'olla boníssima i tradicional.", answer: "ha cuinat", distractors: ["va cuinar", "has cuinat", "he cuinat"], type: "Perfet d'Indicatiu" },
+            { prompt: "Darrerament nosaltres ___ (veure) canvis substancials en el clima regional, molt estranys i forts.", answer: "hem vist", distractors: ["vam veure", "em vist", "hem veig"], type: "Perfet d'Indicatiu" },
+            { prompt: "En tot el matí fosc, vosaltres no ___ (fer) ni el més mínim esforç lloable per guanyar ràpid.", answer: "heu fet", distractors: ["vau fer", "haveu fet", "heu fets"], type: "Perfet d'Indicatiu" },
+            { prompt: "Fins a aquest mateix minut, elles no m' ___ (donar) cap explicació vàlida ni gens clara d'això.", answer: "han donat", distractors: ["van donar", "han donades", "ha donat"], type: "Perfet d'Indicatiu" },
+            { prompt: "Jo, que sempre hi vaig en tren blau, avui hi ___ (anar) caminant i relaxat per la muntanya seca.", answer: "he anat", distractors: ["vaig anar", "ha anat", "hem anat"], type: "Perfet d'Indicatiu" },
+            { prompt: "Aquests últims dies tu i jo no ens ___ (entendre) gens bé a casa ni a la feina tan repetitiva.", answer: "hem entès", distractors: ["vam entendre", "em entès", "hem entesos"], type: "Perfet d'Indicatiu" },
+
+            // PLUSQUAMPERFET D'INDICATIU (15 preguntes)
+            { prompt: "Quan vau trucar-me tan tard, jo ja ___ (sortir) de la casa familiar cap al vell institut gris.", answer: "havia sortit", distractors: ["havia sortit", "he sortit", "hauria sortit"], type: "Plusquamperfet d'Indicatiu" },
+            { prompt: "Es pensaven ingènuament que nosaltres ja ___ (pagar) tota la factura endarrerida completament.", answer: "havíem pagat", distractors: ["haviem pagat", "havíem pagada", "hauriem pagat"], type: "Plusquamperfet d'Indicatiu" },
+            { prompt: "Quan ell va arribar al teatre d'òpera, la grandiosa obra mestra ja ___ (començar) feia estona cega.", answer: "havia començat", distractors: ["ha començat", "havie començat", "va començar"], type: "Plusquamperfet d'Indicatiu" },
+            { prompt: "Jo mai no ___ (viure) una situació tan incòmoda en públic tancat com aquella freda matinada.", answer: "havia viscut", distractors: ["havia viscut", "he viscut", "havia vivit"], type: "Plusquamperfet d'Indicatiu" },
+            { prompt: "Tu ja m'ho ___ (dir) repetides vegades al llarg d'aquella setmana atrafegada, però no et vaig fer cas trist.", answer: "havies dit", distractors: ["havias dit", "havies did", "hauries dit"], type: "Plusquamperfet d'Indicatiu" },
+            { prompt: "La tempesta de neu forta ___ (destrossar) els conreus de raïm abans que sortís el sol matiner clar i net.", answer: "havia destrossat", distractors: ["havie destrossat", "hauria destrossat", "havia destrosat"], type: "Plusquamperfet d'Indicatiu" },
+            { prompt: "Quan ens en vam adonar del tot, ells ja ___ (marxar) cap al poble fronterer del bell mig del res infinit.", answer: "havien marxat", distractors: ["havian marxat", "havien marxats", "haurien marxat"], type: "Plusquamperfet d'Indicatiu" },
+            { prompt: "Abans d'aquell incident lleu, vosaltres mai no ___ (creure) en fantasmes blancs voladors amigables o pacífics.", answer: "havíeu cregut", distractors: ["havieu cregut", "havíeu creguts", "havíeu creguda"], type: "Plusquamperfet d'Indicatiu" },
+            { prompt: "Nosaltres, en aquell moment de confusió gran, no ___ (parlar) prèviament amb el detectiu privat local ràpid.", answer: "havíem parlat", distractors: ["haviem parlat", "havíem parlats", "hauriem parlat"], type: "Plusquamperfet d'Indicatiu" },
+            { prompt: "El foc enorme es va aturar justament perquè abans ___ (ploure) torrencialment durant dues llargues hores intenses.", answer: "havia plogut", distractors: ["havie plogut", "hauria plogut", "havia plougut"], type: "Plusquamperfet d'Indicatiu" },
+            { prompt: "Quan vas arribar tan tard al sopar, jo ja t' ___ (guardar) un lloc bo a la gran i noble taula quadrada de fusta vella.", answer: "havia guardat", distractors: ["havias guardat", "havia guardada", "hauria guardat"], type: "Plusquamperfet d'Indicatiu" },
+            { prompt: "Abans d'aquella reunió, tu ___ (escriure) ja tres correus llarguíssims i densos de pura i dura queixa formal grisa.", answer: "havies escrit", distractors: ["havias escrit", "havies escrivut", "hauries escrit"], type: "Plusquamperfet d'Indicatiu" },
+            { prompt: "El mur gris ja ___ (caure) quan els paletes locals van arribar corrent matí assolellat però certament ventós perillós.", answer: "havia caigut", distractors: ["havie caigut", "hauria caigut", "havia caiguda"], type: "Plusquamperfet d'Indicatiu" },
+            { prompt: "Ells s' ___ (assabentar) de tot el complot moltíssim abans que nosaltres els ho expliquéssim tot de cop i volta fort.", answer: "havien assabentat", distractors: ["havian assabentat", "havien assabentats", "haurien assabentat"], type: "Plusquamperfet d'Indicatiu" },
+            { prompt: "Abans que sortís la notícia a la tele, vosaltres ja ho ___ (saber) per una fiable font de premsa totalment local propera.", answer: "havíeu sabut", distractors: ["havieu sabut", "havíeu sapigut", "hauríeu sabut"], type: "Plusquamperfet d'Indicatiu" },
+
+            // PARTICIPIS IRREGULARS (35 preguntes, contextos diversos)
+            { prompt: "Aquest matí llarg i fosc he ___ (escriure) tres cartes certificades per enviar en calent al govern estatal local.", answer: "escrit", distractors: ["escrivut", "escritut", "escrivia"], type: "Participis Irregulars" },
+            { prompt: "Encara no heu ___ (resoldre) el gran problema informàtic de la sala número cinc freda, bruta i sorollosa ahir?", answer: "resolt", distractors: ["resolgut", "resolut", "resòlt"], type: "Participis Irregulars" },
+            { prompt: "El tribunal altíssim de dalt ha ___ (absoldre) completament tots els acusats joves per falta de proves molt sòlides.", answer: "absolt", distractors: ["absolgut", "absolut", "absòlt"], type: "Participis Irregulars" },
+            { prompt: "Aquest any dur i plujós no m'han ___ (admetre) la meva sol·licitud oficial i vital per rebre la rica beca d'arts.", answer: "admès", distractors: ["admetit", "admetut", "admes"], type: "Participis Irregulars" },
+            { prompt: "El nou i famós president ja ha ___ (cloure) definitivament i oficial l'acte ràpid d'inauguració de primavera blanca.", answer: "clos", distractors: ["clogut", "clout", "cloit"], type: "Participis Irregulars" },
+            { prompt: "T'asseguro jo que ella ha ___ (sofrir) moltíssim a causa d'aquella vella lesió petita i tan poc curada amb compte.", answer: "sofert", distractors: ["sufert", "sofrigut", "sofertut"], type: "Participis Irregulars" },
+            { prompt: "L'alcalde sap que s'han ___ (establir) unes noves normatives rigoroses de circulació lenta prop dels col·legis grisos.", answer: "establert", distractors: ["establit", "establer", "establertut"], type: "Participis Irregulars" },
+            { prompt: "Si us plau digues si heu ___ (imprimir) realment el document complet a doble cara neta i no a una sola cara, eh?", answer: "imprès", distractors: ["imprès", "impres", "imprès"], type: "Participis Irregulars" }, 
+            { prompt: "Ells finalment han ___ (comprendre) del tot absolut el teu difícil punt de vista personal durant aquella xerrada dura.", answer: "comprès", distractors: ["comprenut", "compres", "comprenyut"], type: "Participis Irregulars" },
+            { prompt: "Aquest matí jo ho he ___ (obrir) tot ben obert a la botiga perquè hi entri millor i més ràpid el pur vent suau.", answer: "obert", distractors: ["obrit", "obrigut", "obertit"], type: "Participis Irregulars" },
+            { prompt: "Nosaltres vam haver de fugir molt ràpidament un cop el terrat de dalt va quedar tot ___ (cobrir) de densa neu gelada blanca.", answer: "cobert", distractors: ["cobrit", "cubert", "cobrert"], type: "Participis Irregulars" },
+            { prompt: "L'explorador ja ha ___ (descobrir) el fabulós temple ocult al bell mig de l'extensa jungla salvatge oriental.", answer: "descobert", distractors: ["descobrit", "descubert", "descobrigut"], type: "Participis Irregulars" },
+            { prompt: "Després de l'ensurt jo els he ___ (oferir) un abundant i deliciós plat molt calent d'escudella i carn suau a tots junts.", answer: "ofert", distractors: ["oferit", "ofertut", "ofertigut"], type: "Participis Irregulars" },
+            { prompt: "Lamentablement la vídua ens ha informat ara que ell ja ha ___ (morir) tranquil·lament a primera hora plujosa de matí.", answer: "mort", distractors: ["morit", "morigut", "morut"], type: "Participis Irregulars" },
+            { prompt: "Per desgràcia aquell bon jove pur de cor fort s'havia ___ (corrompre) de manera fatal abans que ningú ho sospités realment.", answer: "corromput", distractors: ["corrompt", "corrompès", "corromgut"], type: "Participis Irregulars" },
+            { prompt: "Tot i les nostres insistents trucades matinals urgents, avui encara no ens han ___ (atendre) com nosaltres veritablement mereixem.", answer: "atès", distractors: ["atengut", "atenut", "ates"], type: "Participis Irregulars" },
+            { prompt: "Ens va deixar bastant clar i cristal·lí que ell encara no s'ho havia pas ___ (prendre) com una burla greu i cruel directa.", answer: "pres", distractors: ["prengut", "prenut", "près"], type: "Participis Irregulars" },
+            { prompt: "Després de llargues explicacions nocturnes a classe trista i buida, puc dir obertament que jo no ho he ___ (aprendre) tot gens ràpid.", answer: "après", distractors: ["aprengut", "aprenut", "apres"], type: "Participis Irregulars" },
+            { prompt: "Estem orgullosos de poder dir alt i clar i lliure que vostè ens ha ___ (sorprendre) amb l'extraordinària bellesa gràfica viva.", answer: "sorprès", distractors: ["sorprengut", "sorprenut", "sorpres"], type: "Participis Irregulars" },
+            { prompt: "T'he de reconèixer que amb les teves inoportunes i dures paraules tallants m'has ___ (ofendre) com ningú altre abans no ha fet pas.", answer: "ofès", distractors: ["ofengut", "ofenut", "ofes"], type: "Participis Irregulars" },
+            { prompt: "En tota la seva vida, ell no ha ___ (pretendre) mai absolutament enganyar-te amb males arts i intencions falses ocultes de debò.", answer: "pretès", distractors: ["pretengut", "pretenut", "pretes"], type: "Participis Irregulars" },
+            { prompt: "Amb molta habilitat heu ___ (dissoldre) tots els inofensius i petitíssims grumolls en el suau got curull de pura i calenta aigua sana.", answer: "dissolt", distractors: ["dissolgut", "dissolut", "dissòlt"], type: "Participis Irregulars" },
+            { prompt: "La padrina ja té tot el saborós cafè recent ___ (moldre) llest perquè es pugui començar finalment la festa immensa matinera plena.", answer: "mòlt", distractors: ["molt", "molgut", "molgüt"], type: "Participis Irregulars" },
+            { prompt: "Tot s'ha acabat d'enfonsar literalment just quan l'advocat més car de la ciutat m'ha ___ (incloure) al testament estrany i confús fosc.", answer: "inclos", distractors: ["inclòs", "inclogut", "incluit"], type: "Participis Irregulars" },
+            { prompt: "Els companys de l'oficina dalt m'han ___ (excloure) del nou llistat de viatges per decisió pròpia ferma, cruel i força irrevocable certament.", answer: "exclos", distractors: ["exclòs", "exclogut", "excluit"], type: "Participis Irregulars" },
+            { prompt: "Després de llegir el llarg dictamen sencer hem ___ (concloure) que finalment es requereixen reformes grans immediates importants i grans.", answer: "conclos", distractors: ["conclòs", "conclogut", "concluit"], type: "Participis Irregulars" },
+            { prompt: "Ell mateix en persona m'ha ___ (descriure) pas a pas i lentament la trista i buida habitació molt blava on ell certament es trobava reclòs ahir.", answer: "descrit", distractors: ["descrivut", "descritut", "describit"], type: "Participis Irregulars" },
+            { prompt: "El jove alumne prometedor s'ha ___ (inscriure) molt ràpidament i de pressa a la competició lúdica estival atlètica nova avui llunyana fina.", answer: "inscrit", distractors: ["inscrivut", "inscritut", "inscribit"], type: "Participis Irregulars" },
+            { prompt: "Jo mateix no hi he ___ (sobreviure) per miracle diví pur absolut gràcies sobretot a la intervenció aèria heroica mèdica gran verda.", answer: "sobreviscut", distractors: ["sobrevivit", "sobreviscutut", "sobrevisqut"], type: "Participis Irregulars" },
+            { prompt: "La seva estranya aparició ha estat certament un fet completament inèdit i del tot ___ (impreveure) per a nosaltres dos lents cansats.", answer: "imprevist", distractors: ["imprevingut", "impreveigut", "imprevengut"], type: "Participis Irregulars" },
+            { prompt: "Nosaltres, en aquell moment precís i net just clau, ja havíem ___ (veure) que la casa sencera no tindria cap viabilitat forta dura gens.", answer: "vist", distractors: ["veigut", "vingut", "vistut"], type: "Participis Irregulars" },
+            { prompt: "L'escriptora finalment ha ___ (transcriure) tot el manuscrit íntegre a un portàtil nou molt modern ràpid útil per treballar-hi de nit plena.", answer: "transcrit", distractors: ["transcrivut", "transcritut", "transcribit"], type: "Participis Irregulars" },
+            { prompt: "Avui, al fons del plat rígid trencat vell, la mare ha ___ (coure) tota la carn magra sencera crua a foc extremadament lent constant càlid ferm.", answer: "cuit", distractors: ["cogut", "covut", "coit"], type: "Participis Irregulars" },
+            { prompt: "Ella no hi ha ___ (viure) ni tres hores tranquil·les allà al nord plujós trist fosc fins que va decidir irremeiablement de tornar fugaç curta.", answer: "viscut", distractors: ["vivit", "visqut", "viscuit"], type: "Participis Irregulars" },
+            { prompt: "Ell m'ha ___ (satisfer) plenament, sense fissures, complint sense demora ni excepció tota la feina pactada acordada prèviament clara lliure.", answer: "satisfet", distractors: ["satisfagut", "satisfact", "satisfès"], type: "Participis Irregulars" }
+        ];
+
+        // Mètode per netejar duplicats al generador, just en cas que algun distractor es col·li.
+        const cleanArray = (arr) => [...new Set(arr)];
+
+        // Generador de preguntes tipus test
+        const generateQuiz = () => {
+            const targetIndex = Math.floor(Math.random() * grammarDB.length);
+            const target = grammarDB[targetIndex];
+            
+            // Creem l'array d'opcions amb la resposta correcta + distractors propis
+            let options = [target.answer, ...target.distractors];
+            
+            // Netejem possibles repeticions
+            options = cleanArray(options);
+
+            // Si algun motiu no hi ha 4 opcions (perquè algun distractor era igual), n'afegim d'aleatoris de la BBDD
+            while (options.length < 4) {
+                const randomItem = grammarDB[Math.floor(Math.random() * grammarDB.length)];
+                if (!options.includes(randomItem.answer)) {
+                    options.push(randomItem.answer);
+                }
+            }
+            
+            // Si en té massa (per errors a la DB), retallem
+            if (options.length > 4) {
+                options = options.slice(0, 4);
+            }
+
+            // Barregem les opcions
+            const shuffledOptions = options.sort(() => Math.random() - 0.5);
+
+            return {
+                grammar: target,
+                questionText: target.prompt,
+                correctAnswer: target.answer,
+                options: shuffledOptions
+            };
+        };
+
+        function GameApp() {
+            const [gameState, setGameState] = useState('menu');
+            const [currentQuiz, setCurrentQuiz] = useState(null);
+            const [score, setScore] = useState(0);
+            const [lives, setLives] = useState(3);
+            const [combo, setCombo] = useState(1);
+            const [bestScore, setBestScore] = useState(0);
+            
+            const [attempts, setAttempts] = useState(0); 
+            const [tipQueue, setTipQueue] = useState([]); 
+            
+            const [selectedAnswer, setSelectedAnswer] = useState(null);
+            const [isAnimating, setIsAnimating] = useState(false);
+            const [shakeEfx, setShakeEfx] = useState(false);
+            const [glowEfx, setGlowEfx] = useState(false);
+            const [showExplanation, setShowExplanation] = useState(false);
+            
+            const [showTip, setShowTip] = useState(false); 
+            const [currentTip, setCurrentTip] = useState(null); 
+
+            const startGame = () => {
+                setScore(0);
+                setLives(3);
+                setCombo(1);
+                setAttempts(0);
+                
+                // Barregem els consells en començar
+                const shuffledTips = [...advancedTips].sort(() => Math.random() - 0.5);
+                setTipQueue(shuffledTips);
+                
+                setCurrentQuiz(generateQuiz());
+                setShowExplanation(false);
+                setShowTip(false);
+                setGameState('playing');
+            };
+
+            const proceedToNextQuestion = (currentAttemptCount) => {
+                setSelectedAnswer(null);
+                setIsAnimating(false);
+                
+                // Cada 5 intents, mostrem un consell avançat
+                if (currentAttemptCount % 5 === 0 && currentAttemptCount > 0 && tipQueue.length > 0) {
+                    const nextTip = tipQueue[0];
+                    setTipQueue(tipQueue.slice(1)); 
+                    setCurrentTip(nextTip);
+                    setShowTip(true);
+                } else {
+                    setCurrentQuiz(generateQuiz());
+                }
+            };
+
+            const handleAnswer = (answer) => {
+                if (isAnimating || showExplanation || showTip) return;
+                setIsAnimating(true);
+                setSelectedAnswer(answer);
+
+                const isCorrect = answer === currentQuiz.correctAnswer;
+                const newAttempts = attempts + 1;
+                setAttempts(newAttempts);
+
+                if (isCorrect) {
+                    setGlowEfx(true);
+                    const pointsEarned = 10 * combo;
+                    setScore(s => s + pointsEarned);
+                    setCombo(c => Math.min(c + 1, 5));
+                    
+                    setTimeout(() => {
+                        setGlowEfx(false);
+                        proceedToNextQuestion(newAttempts);
+                    }, 800);
+
+                } else {
+                    setShakeEfx(true);
+                    setCombo(1); 
+                    
+                    setTimeout(() => {
+                        setShakeEfx(false);
+                        setShowExplanation(true);
+                    }, 800);
+                }
+            };
+
+            const handleContinueAfterFailure = () => {
+                const newLives = lives - 1;
+                setLives(newLives);
+                setShowExplanation(false);
+
+                if (newLives <= 0) {
+                    if (score > bestScore) setBestScore(score);
+                    setGameState('gameover');
+                } else {
+                    proceedToNextQuestion(attempts);
+                }
+            };
+
+            const handleCloseTip = () => {
+                setShowTip(false);
+                setCurrentQuiz(generateQuiz());
+            };
+
+            if (gameState === 'menu') {
+                return (
+                <div className="min-h-screen bg-[#05110a] text-white flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
+                    <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-emerald-600/20 rounded-full blur-[120px] mix-blend-screen animate-pulse"></div>
+                    <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-green-600/20 rounded-full blur-[150px] mix-blend-screen"></div>
+
+                    <div className="z-10 text-center max-w-md w-full backdrop-blur-xl bg-white/5 border border-white/10 p-10 rounded-3xl shadow-[0_0_50px_rgba(16,185,129,0.15)]">
+                        <div className="flex justify-center mb-6">
+                            <div className="relative">
+                                <Sparkles className="absolute -top-4 -right-4 text-emerald-400 animate-bounce" size={32} />
+                                <div className="w-24 h-24 bg-gradient-to-br from-green-600 to-emerald-500 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.4)]">
+                                    <Gem size={48} className="text-white" />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h1 className="text-4xl md:text-5xl font-black mb-2 bg-clip-text text-transparent bg-gradient-to-r from-lime-300 via-emerald-300 to-teal-300 tracking-tight leading-tight">
+                            Sintaxi<br/>Maragda
+                        </h1>
+                        <p className="text-green-200/70 mb-4 text-lg">Domina els temps verbals en català (B1-C2).</p>
+                        <div className="mb-10 text-sm bg-white/10 rounded-full py-1 px-4 text-emerald-200 inline-block border border-emerald-500/20">
+                            +210 reptes avançats
+                        </div>
+                        
+                        <button 
+                            onClick={startGame}
+                            className="w-full relative group overflow-hidden rounded-2xl p-[2px]"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-r from-green-600 via-emerald-500 to-teal-400 opacity-70 group-hover:opacity-100 animate-pulse transition-opacity"></div>
+                            <div className="relative bg-[#05110a] bg-opacity-90 px-8 py-5 rounded-2xl flex items-center justify-center gap-3 transition-all group-hover:bg-opacity-0">
+                                <Play className="text-white fill-current" size={24} />
+                                <span className="text-2xl font-bold tracking-wide">JUGAR ARA</span>
+                            </div>
+                        </button>
+
+                        {bestScore > 0 && (
+                            <div className="mt-8 flex items-center justify-center gap-2 text-emerald-300 font-semibold bg-white/5 py-3 rounded-full border border-emerald-500/20">
+                                <Trophy size={20} /> Millor Puntuació: {bestScore}
+                            </div>
+                        )}
+                    </div>
+                </div>
+                );
+            }
+
+            if (gameState === 'gameover') {
+                return (
+                <div className="min-h-screen bg-[#0B0F19] text-white flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
+                    <div className="absolute inset-0 bg-rose-900/20 z-0"></div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] bg-rose-600/20 rounded-full blur-[100px]"></div>
+
+                    <div className="z-10 text-center max-w-md w-full backdrop-blur-2xl bg-[#0f1423]/80 border border-rose-500/30 p-10 rounded-3xl shadow-[0_0_50px_rgba(225,29,72,0.2)]">
+                        <AlertTriangle className="mx-auto text-rose-500 mb-6" size={64} />
+                        
+                        <h2 className="text-4xl font-black text-white mb-2 tracking-tight">CÀPSULA DEL TEMPS<br/>DESTRUÏDA</h2>
+                        <p className="text-rose-200/70 mb-8 text-lg">T'has quedat sense vides!</p>
+
+                        <div className="bg-white/5 rounded-2xl p-6 mb-8 border border-white/10">
+                            <p className="text-sm text-slate-400 uppercase tracking-widest font-bold mb-1">Puntuació Final</p>
+                            <p className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-orange-400">{score}</p>
+                        </div>
+
+                        <button 
+                            onClick={startGame}
+                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold text-xl py-5 rounded-2xl flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(16,185,129,0.4)] transition-transform active:scale-95"
+                        >
+                            <RotateCcw size={24} /> Tornar a Intentar
+                        </button>
+                    </div>
+                </div>
+                );
+            }
+
+            return (
+                <div className={`min-h-screen bg-[#05110a] text-white flex flex-col font-sans overflow-hidden transition-colors duration-300 ${shakeEfx ? 'animate-shake' : ''} ${glowEfx ? 'bg-emerald-950/40' : ''}`}>
+                
+                    {/* OVERLAY D'EXPLICACIÓ AL FALLAR */}
+                    {showExplanation && (
+                        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-all duration-300">
+                            <div className="bg-[#0a1a12] border border-rose-500/50 p-6 md:p-8 rounded-3xl max-w-lg w-full shadow-[0_0_60px_rgba(225,29,72,0.3)] transform transition-all">
+                                
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="bg-rose-500/20 p-3 rounded-full">
+                                        <XCircle className="text-rose-500" size={32} />
+                                    </div>
+                                    <h2 className="text-3xl font-black text-white">Error Sintàctic!</h2>
+                                </div>
+
+                                <div className="bg-white/5 rounded-2xl p-5 mb-6 border border-white/10">
+                                    <p className="text-sm text-slate-400 uppercase tracking-widest font-bold mb-2">La forma verbal correcta era:</p>
+                                    <div className="text-2xl md:text-3xl font-black text-emerald-400 capitalize">
+                                        {currentQuiz.correctAnswer}
+                                    </div>
+                                </div>
+
+                                <div className="bg-green-900/30 rounded-2xl p-5 mb-8 border border-green-500/30">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Info size={20} className="text-emerald-400" />
+                                        <h3 className="font-bold text-emerald-300 text-lg uppercase tracking-wide">
+                                            Repàs: {currentQuiz.grammar.type}
+                                        </h3>
+                                    </div>
+                                    <p className="text-green-100/80 leading-relaxed text-lg">
+                                        {explanationsDB[currentQuiz.grammar.type]}
+                                    </p>
+                                </div>
+
+                                <button 
+                                    onClick={handleContinueAfterFailure}
+                                    className="w-full bg-gradient-to-r from-rose-600 to-orange-500 hover:from-rose-500 hover:to-orange-400 text-white font-bold text-xl py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-95"
+                                >
+                                    Entès, continuar <ArrowRight size={24} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* OVERLAY DE CONSELL CADA 5 INTENTS */}
+                    {showTip && currentTip && (
+                        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-all duration-300">
+                            <div className="bg-[#07170f] border border-emerald-500/50 p-6 md:p-8 rounded-3xl max-w-lg w-full shadow-[0_0_60px_rgba(16,185,129,0.3)] transform transition-all relative overflow-hidden">
+                                
+                                <div className="absolute top-[-50px] right-[-50px] w-[150px] h-[150px] bg-emerald-600/20 rounded-full blur-[50px]"></div>
+
+                                <div className="flex items-center gap-3 mb-6 relative z-10">
+                                    <div className="bg-emerald-500/20 p-3 rounded-full border border-emerald-500/30">
+                                        <Lightbulb className="text-emerald-400" size={32} />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-black text-white">Checkpoint Lingüístic</h2>
+                                        <p className="text-emerald-300/70 text-sm font-bold uppercase tracking-widest">{attempts} frases analitzades</p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-gradient-to-br from-green-900/40 to-emerald-900/20 rounded-2xl p-6 mb-8 border border-emerald-500/30 relative z-10">
+                                    <h3 className="font-bold text-emerald-300 text-lg uppercase tracking-wide mb-3 border-b border-emerald-500/30 pb-2">
+                                        💡 Consell: {currentTip.title}
+                                    </h3>
+                                    <p className="text-green-100 leading-relaxed text-xl font-medium">
+                                        {currentTip.content}
+                                    </p>
+                                </div>
+
+                                <button 
+                                    onClick={handleCloseTip}
+                                    className="relative z-10 w-full bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-500 hover:to-emerald-400 text-white font-bold text-xl py-4 rounded-xl flex items-center justify-center gap-2 shadow-[0_10px_20px_rgba(16,185,129,0.3)] transition-transform active:scale-95"
+                                >
+                                    Continuar Investigant <ArrowRight size={24} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* BARRA SUPERIOR (Vides i Puntuació) */}
+                    <div className="flex justify-between items-center p-6 md:p-8 z-10 bg-gradient-to-b from-[#05110a] to-transparent">
+                        <div className="flex gap-2">
+                            {[...Array(3)].map((_, i) => (
+                                <div key={i} className={`transition-all duration-300 ${i < lives ? 'text-rose-500 drop-shadow-[0_0_10px_rgba(244,63,94,0.8)]' : 'text-slate-800'}`}>
+                                    <Heart size={32} className={i < lives ? "fill-current" : "fill-current"} />
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex flex-col items-end">
+                            <div className="text-3xl md:text-4xl font-black tracking-tighter text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
+                                {score.toString().padStart(4, '0')}
+                            </div>
+                            {combo > 1 && (
+                                <div className="flex items-center gap-1 text-emerald-400 font-bold text-lg animate-pulse">
+                                    <Zap size={16} className="fill-current" /> COMBO x{combo}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ZONA DE LA PREGUNTA */}
+                    <div className={`flex-1 flex flex-col items-center justify-center p-6 z-10 transition-opacity duration-300 ${(showExplanation || showTip) ? 'opacity-30 blur-sm pointer-events-none' : 'opacity-100'}`}>
+                        <div className="text-emerald-300/60 font-bold tracking-widest uppercase mb-4 text-sm md:text-base flex items-center gap-2">
+                            {currentQuiz.grammar.type}
+                        </div>
+                        
+                        <div className="h-40 md:h-56 flex items-center justify-center animate-[float_4s_ease-in-out_infinite] animate-float max-w-3xl">
+                            <h2 className="text-2xl md:text-4xl font-black text-center text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400 drop-shadow-sm px-4 leading-relaxed">
+                                {currentQuiz.questionText}
+                            </h2>
+                        </div>
+                    </div>
+
+                    {/* ZONA DE RESPOSTES */}
+                    <div className={`p-4 md:p-8 z-10 w-full max-w-4xl mx-auto pb-12 transition-opacity duration-300 ${(showExplanation || showTip) ? 'opacity-30 blur-sm pointer-events-none' : 'opacity-100'}`}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {currentQuiz.options.map((option, index) => {
+                                
+                                let btnStyle = "bg-white/5 border-white/10 hover:bg-white/10 text-slate-200";
+
+                                if (selectedAnswer !== null) {
+                                    if (option === currentQuiz.correctAnswer) {
+                                        btnStyle = "bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-[0_0_30px_rgba(52,211,153,0.3)] ring-2 ring-emerald-400 scale-[1.02]";
+                                    } else if (option === selectedAnswer && option !== currentQuiz.correctAnswer) {
+                                        btnStyle = "bg-rose-500/20 border-rose-500 text-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.3)] opacity-50";
+                                    } else {
+                                        btnStyle = "bg-white/5 border-white/5 text-slate-500 opacity-40";
+                                    }
+                                }
+
+                                return (
+                                    <button
+                                        key={index}
+                                        onClick={() => handleAnswer(option)}
+                                        disabled={isAnimating || showExplanation || showTip}
+                                        className={`relative w-full p-6 md:p-8 rounded-2xl border-2 backdrop-blur-md transition-all duration-300 text-xl md:text-2xl font-bold flex items-center justify-center text-center overflow-hidden active:scale-95 ${btnStyle}`}
+                                    >
+                                        {selectedAnswer === null && (
+                                            <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-white/5 to-emerald-500/0 opacity-0 hover:opacity-100 transition-opacity duration-500 transform -translate-x-full hover:translate-x-full"></div>
+                                        )}
+                                        
+                                        <span className="capitalize">{option}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<GameApp />);
+    </script>
+</body>
+</html>
